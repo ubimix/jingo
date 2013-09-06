@@ -20,6 +20,8 @@
     "passport-twitter": "*",
     "passport-facebook": "*",
     "passport-local": "*",
+    "acl": "0.2.5", 
+    "step": "*",
     "iconv": "*",
     "marked": ">= 0.2.x",
     "node-syntaxhighlighter": "*",
