@@ -14,8 +14,19 @@ block content
         a.btn.btn-primary(href="/auth/google") Google login
       hr
 
+    if (auth.twitter.enabled)
+      p
+        b Authenticate via 
+        a.btn.btn-primary(href="/auth/twitter") Twitter login
+      hr
+      
+    if (auth.facebook.enabled)
+      p
+        b Authenticate via 
+        a.btn.btn-primary(href="/auth/facebook") Facebook login
+      hr      
+      
     if (auth.alone.enabled)
-
       p
         b Authenticate locally
 

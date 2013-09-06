@@ -11,7 +11,6 @@
 var express        = require('express')
   , http           = require('http')
   , path           = require('path')
-  , passport       = require('passport')
   , Git            = require('./lib/gitmech')
   , Tools          = require('./lib/tools')
   , Renderer       = require('./lib/renderer')
@@ -19,40 +18,16 @@ var express        = require('express')
   , gravatar       = require('gravatar')
   , Fs             = require('fs')
   , Url            = require('url')
-  , GoogleStrategy = require('passport-google').Strategy
-  , LocalStrategy  = require('passport-local').Strategy
   , yaml           = require('yaml-js')
   , Flash          = require('connect-flash')
-  , program        = require('commander');
+  , program        = require('commander')
+  , passport = require('passport')
+  , config = require('./lib/config')
+  
+  , configPassport = require('./lib/config.passport')
+  , configAccessControl = require('./lib/config.access')
+  , configRoutes = require('./lib/config.routes');
 
-program.version('0.4.4')
-       .option('-c, --config <path>', 'Specify the config file')
-       .option('-#, --hash-string <string>', 'Create an hash for a string')
-       .option('-l, --local', 'Listen on localhost only')
-       .option('-s, --sample-config', 'Dumps a config file template and exits')
-       .parse(process.argv);
-
-if (program.sampleConfig) {
-  console.log(sampleConfig());
-  process.exit(0);
-}
-
-if (program.hashString) {
-  console.log(Tools.hashify(program.hashString));
-  process.exit(0);
-}
-
-if (!program.config || !Fs.existsSync(program.config)) {
-  program.help();
-  process.exit(-1);
-}
-
-var config = yaml.load(Fs.readFileSync(program.config).toString());
-
-if (!config.application || !config.server) {
-  console.log("Error: a problem exists in the config file. Cannot continue.");
-  process.exit(-1);
-}
 
 try {
   Git.setup(config.application.repository, config.application.docSubdir || "");
@@ -64,6 +39,7 @@ try {
 
 // Global to be accessed from the routes module
 global.app = express();
+
 app.locals.Git = Git;
 app.locals._sidebar;
 app.locals._footer;
@@ -98,17 +74,9 @@ if (!config.application || !config.server) {
 }
 
 app.locals.authorization = config.authorization || { anonRead: false, validMatches: ".+" };
-var auth = app.locals.authentication = config.authentication || { google: { enabled: true }, alone: { enabled: false } };
-
-if ( (!auth.google || !auth.google.enabled) && 
-     (!auth.alone  || !auth.alone.enabled) ) {
-  console.log("Error: no authentication method provided. Cannot continue.");
-  process.exit(-1);
-}
-
-var routes = require("./routes");
 
 app.configure(function() {
+  
   app.use(express.errorHandler());
   app.set('port', app.locals.port);
   app.set('views', __dirname + '/views');
@@ -220,108 +188,9 @@ app.configure(function() {
   app.use(app.router);
 });
 
-function requireAuthentication(req, res, next) {
-  if (!res.locals.user) {
-    res.redirect("/login");
-    /*
-    res.statusCode = 403;
-    res.end('<h1>Forbidden</h1>');
-    */
-  } else {
-    next();
-  }
-}
-
-/* 
- * Passport configuration
- */
-
-passport.use(new GoogleStrategy({
-    returnURL: app.locals.baseUrl + '/auth/google/return',
-    realm: app.locals.baseUrl
-  },
-
-  function(identifier, profile, done) {
-    usedAuthentication("google");
-    done(undefined, profile);
-  }
-));
-
-passport.use(new LocalStrategy(
-
-  function(username, password, done) {
-
-    var user = {
-      displayName: auth.alone.username,
-      email: auth.alone.email || ""
-    };
-
-    if (username.toLowerCase() != auth.alone.username.toLowerCase() || Tools.hashify(password) != auth.alone.passwordHash) {
-      return done(null, false, { message: 'Incorrect username or password' });
-    }
-
-    usedAuthentication("alone");
-
-    return done(null, user);
-  }
-));
-
-passport.serializeUser(function(user, done) {
-  done(null, user);
-});
-
-passport.deserializeUser(function(user, done) {
-  if (user.emails && user.emails.length > 0) { // Google
-    user.email = user.emails[0].value;
-    delete user.emails;
-  }
-  user.asGitAuthor = user.displayName + " <" + user.email + ">"; 
-  done(undefined, user);
-});
-
-function usedAuthentication(name) {
-  for (var a in app.locals.authentication) {
-    app.locals.authentication[a].used = (a == name);
-  }
-}
-
-app.all("/pages/*", requireAuthentication);
-
-if (!app.locals.authorization.anonRead) {
-  app.all("/wiki/*", requireAuthentication);
-  app.all("/search", requireAuthentication);
-}
-
-app.get    ("/",                      routes.index);
-app.get    ("/wiki",                  routes.pageList);
-app.get    ("/wiki/:page",            routes.pageShow);
-app.get    ("/wiki/:page/history",    routes.pageHistory);
-app.get    ("/wiki/:page/:version",   routes.pageShow);
-app.get    ("/wiki/:page/compare/:revisions", routes.pageCompare);
-
-app.get    ("/search",                routes.search);
-
-app.get    ("/pages/new",             routes.pageNew);
-app.get    ("/pages/new/:page",       routes.pageNew);
-app.post   ("/pages",                 routes.pageCreate);
-
-app.get    ("/pages/:page/edit",      routes.pageEdit);
-app.put    ("/pages/:page",           routes.pageUpdate);
-app.delete ("/pages/:page",           routes.pageDestroy);
-
-app.post   ("/misc/preview",          routes.miscPreview);
-app.get    ("/misc/syntax-reference", routes.miscSyntaxReference);
-app.get    ("/misc/existence",        routes.miscExistence);
-
-app.post   ("/login",                 passport.authenticate('local', { successRedirect: '/auth/done', failureRedirect: '/login', failureFlash: true }));
-app.get    ("/login",                 routes.login);
-app.get    ("/logout",                routes.logout);
-
-app.get    ("/auth/google",           passport.authenticate('google'));
-app.get    ("/auth/google/return",    passport.authenticate('google', { successRedirect: '/auth/done', failureRedirect: '/login' }));
-app.get    ("/auth/done",             routes.authDone);
-
-app.all('*', routes.error404);
+configPassport(app);
+configAccessControl(app);
+configRoutes(app);
 
 var listenAddr = process.env.NW_ADDR || "";
 if (config.server.localOnly) {
@@ -348,33 +217,3 @@ if (app.locals.remote != "") {
   }, app.locals.pushInterval);
 }
 
-// Dumps a sample config file
-function sampleConfig() {
-  return "\
----\n\
-  # Configuration sample file for Jingo (YAML)\n\
-  application:\n\
-    title: \"Jingo\"\n\
-    repository: \"/absolute/path/to/your/repo\"\n\
-    docSubdir: \"\"\n\
-    remote: \"\"\n\
-    pushInterval: 30\n\
-    secret: \"change me\"\n\
-  server:\n\
-    hostname: \"localhost\"\n\
-    port: 6067\n\
-    localOnly: false\n\
-    baseUrl: \"http://localhost:6067\"\n\
-  authorization:\n\
-    anonRead: true\n\
-    validMatches: \".+\"\n\
-  authentication:\n\
-    google:\n\
-      enabled: true\n\
-    alone:\n\
-      enabled: false\n\
-      username: \"\"\n\
-      passwordHash: \"\"\n\
-      email: \"\"\n\
-";
-}
