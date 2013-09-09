@@ -1,6 +1,6 @@
 node_modules/*
 config.yml
-data/*
+data
 /node_modules
 /config.yaml
 /.gitignore

@@ -9,10 +9,10 @@ Program.version('0.0.1').option('-o, --operation <opname>',
 
 if (Program.operation) {
     if (Program.operation == 'toyaml') {
-        Utils.toMarkedownYamlFiles('./geoitems.1.json', '../data/');
+        Utils.toMarkedownYamlFiles('./data/data.json', './data/');
         
     } else if (Program.operation == 'parse') {
-        var files = Utils.getFilesByExtension('../data', 'md');
+        var files = Utils.getFilesByExtension('./data', 'md');
         _.each(files, function(file) {
             var obj = Utils.toGeoJson(file);
         });
