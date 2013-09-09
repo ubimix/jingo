@@ -1,0 +1,26 @@
+body {
+	padding-top: 60px;
+	/* 60px to make the container go all the way to the bottom of the topbar */
+	font-family: "Ubuntu";
+	background-color: #f2f2f2;
+	background-image: none;
+}
+
+p.user {
+	color: grey;
+}
+
+.navbar-inverse .navbar-inner {
+	background-color: white;
+	border-color: white;
+}
+
+.navbar-inverse .navbar-search .search-query {
+	color: #fff;
+	background-color: #fff;
+	border-color: #dfdfdf;
+}
+
+.navbar-inverse .brand:hover,.navbar-inverse .nav>li>a:hover {
+	color: black;
+}
