@@ -29,7 +29,13 @@
     "express-validator": ">= 0.3.0",
     "commander": "*",
     "connect-flash": "*",
-    "yaml-js": "*"
+    "yaml-js": "*",
+
+    "underscore": "*",
+    "yamljs":"*",
+    "iconv": "*",
+    "glob": "~3.1.11",
+    "ntwitter":"*"
   },
   "devDependencies": {
     "chai": "*",
