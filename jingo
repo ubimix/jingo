@@ -18,7 +18,6 @@ var express        = require('express')
   , gravatar       = require('gravatar')
   , Fs             = require('fs')
   , Url            = require('url')
-  , yaml           = require('yaml-js')
   , Flash          = require('connect-flash')
   , program        = require('commander')
   , passport = require('passport')
@@ -26,7 +25,8 @@ var express        = require('express')
   
   , configPassport = require('./lib/config.passport')
   , configAccessControl = require('./lib/config.access')
-  , configRoutes = require('./lib/config.routes');
+  , configRoutes = require('./lib/config.routes')
+  , configTechOnMap = require('./lib/config.techonmap');
 
 
 try {
@@ -190,7 +190,9 @@ app.configure(function() {
 
 configPassport(app);
 configAccessControl(app);
+configTechOnMap(app);
 configRoutes(app);
+
 
 var listenAddr = process.env.NW_ADDR || "";
 if (config.server.localOnly) {
